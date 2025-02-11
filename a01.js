@@ -1,8 +1,8 @@
 /*
-  Basic File I/O for displaying
+  Basic File I/O for rotating an image
+  Final Author: Cumhur Aygar
   Skeleton Author: Joshua A. Levine
   Modified by: Amir Mohammad Esmaieeli Sikaroudi
-  Email: amesmaieeli@email.arizona.edu
 */
 
 
@@ -25,6 +25,7 @@ var upload = function () {
         if (file.type) console.log("It has type", file.type);
         var fReader = new FileReader();
         fReader.readAsBinaryString(file);
+                    requestAnimationFrame(animate);
 
         fReader.onload = function(e) {
             //if successful, file data has the contents of the uploaded file
@@ -37,6 +38,8 @@ var upload = function () {
             * Hint: Write a rotation method, and call WebGL APIs to reuse the method for animation
             */
 	    
+            requestAnimationFrame(animate);
+
             // *** The code below is for the template to show you how to use matrices and update pixels on the canvas.
             // *** Modify/remove the following code and implement animation
 
@@ -155,4 +158,39 @@ function parsePPM(file_data){
 }
 
 //Connect event listeners
-input.addEventListener("change", upload);
+var angle = 0;
+
+function getRotationMatrix(theta) {
+    var cosT = Math.cos(theta);
+    var sinT = Math.sin(theta);
+    return [
+        [cosT, -sinT, 0],
+        [sinT, cosT, 0],
+        [0, 0, 1]
+    ];
+}
+
+// Animate by multiplying with Rotation matrix, which is updated with each 'angle'. We can increment or decrease the angle rate for speed.
+function animate() {
+    angle += 0.02;
+    var rotationMatrix = getRotationMatrix(angle);
+    var newImageData = ctx.createImageData(width, height);
+    
+    for (var i = 0; i < ppm_img_data.data.length; i += 4) {
+        var pixel = [Math.floor(i / 4) % width - width / 2, 
+                     Math.floor(i / 4) / width - height / 2, 1];
+        var samplePixel = MultiplyMatrixVector(rotationMatrix, pixel);
+        samplePixel[0] = Math.floor(samplePixel[0] + width / 2);
+        samplePixel[1] = Math.floor(samplePixel[1] + height / 2);
+        setPixelColor(newImageData, samplePixel, i);
+    }
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(newImageData, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2);
+    requestAnimationFrame(animate);
+}
+
+input.addEventListener("change", function() {
+    upload();
+    requestAnimationFrame(animate);
+});
